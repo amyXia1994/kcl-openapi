@@ -1,6 +1,9 @@
 # note: call scripts from /scripts
 PROJECT_ROOT:=$(shell pwd)
 GO_FILES:=$$(find ./ -type f -name '*.go' -not -path ".//vendor/*")
+GOLINTER			?= golangci-lint
+GOLINTER_VERSION	?= v1.41.0
+SOURCE_PATHS		?= ./pkg/...
 
 build-local-all: build-darwin build-darwin-arm64 build-linux build-windows
 
@@ -57,3 +60,15 @@ check-fmt:
 
 regenerate:
 	go run scripts/regenerate.go
+
+lint:  ## Lint, will not fix but sets exit code on error
+	@which $(GOLINTER) > /dev/null || (echo "Installing $(GOLINTER)@$(GOLINTER_VERSION) ..."; go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINTER_VERSION) && echo -e "Installation complete!\n")
+	$(GOLINTER) run --deadline=10m $(SOURCE_PATHS)
+
+lint-fix:  ## Lint, will try to fix errors and modify code
+	@which $(GOLINTER) > /dev/null || (echo "Installing $(GOLINTER)@$(GOLINTER_VERSION) ..."; go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINTER_VERSION) && echo -e "Installation complete!\n")
+	$(GOLINTER) run --deadline=10m $(SOURCE_PATHS) --fix
+
+doc:  ## Start the documentation server with godoc
+	@which godoc > /dev/null || (echo "Installing godoc@latest ..."; go install golang.org/x/tools/cmd/godoc@latest && echo -e "Installation complete!\n")
+	godoc -http=:6060
